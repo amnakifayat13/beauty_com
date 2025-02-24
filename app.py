@@ -68,10 +68,10 @@ if page == "Home":
 
     # Display products as cards in rows of four
     st.subheader("📋 Available Products")
-    cols = st.columns(4)  # Create 4 columns
+    cols = st.columns(4)  
 
     for index, row in filtered_df.iterrows():
-        col = cols[index % 4]  # Distribute items across 4 columns
+        col = cols[index % 4]  
         with col:
             st.image(row["Image"])
             st.markdown(f"""
@@ -86,35 +86,50 @@ if page == "Home":
                 if row['Name'] in st.session_state.cart:
                     st.session_state.cart[row['Name']] += 1
                 else:
-                    st.session_state.cart[row['Name']] = 1
+                    st.session_state.cart[row['Name']] = {"quantity": 1, "price": row['Price']}
                 st.success(f"✅ {row['Name']} added to cart!")
 
+ 
+
+# Cart Page
 elif page == "Cart":
     st.title("🛒 Your Cart")
-    if st.session_state.cart:
-        st.subheader("🛍 Items in Your Cart")
-        for name, qty in st.session_state.cart.items():
-            with st.container():
-                st.markdown(f"""
-                    <div class='product-card'>
-                        <h4>{name}</h4>
-                        <p>Quantity: {qty}</p>
-                    </div>
-                """, unsafe_allow_html=True)
+
+    if not st.session_state.cart:
+        st.write("Your cart is empty!")
     else:
-        st.info("Your cart is empty.")
+        total_price = 0
+        for item, details in st.session_state.cart.items():
+            st.write(f"🛍 {item} - {details['quantity']} pcs x Rs.{details['price']} = Rs.{details['quantity'] * details['price']}")
+            total_price += details["quantity"] * details["price"]
+
+        st.subheader(f"💵 Total Price: Rs.{total_price}")
 
 elif page == "Order":
     st.title("📝 Order Page")
     st.markdown("Review and confirm your order.")
+
     if st.session_state.cart:
-        order_df = pd.DataFrame([(name, qty) for name, qty in st.session_state.cart.items()], columns=["Product", "Quantity"])
+        # Convert cart dictionary to DataFrame with price details
+        order_df = pd.DataFrame(
+            [(name, details["quantity"], details["price"], details["quantity"] * details["price"]) 
+             for name, details in st.session_state.cart.items()],
+            columns=["Product", "Quantity", "Price per unit", "Total Price"]
+        )
+
+        # Display the order summary
         st.dataframe(order_df)
+
+        # Calculate Grand Total
+        grand_total = order_df["Total Price"].sum()
+        st.subheader(f"💰 Grand Total: Rs.{grand_total}")
+
         if st.button("Confirm Order"):
             st.success("🎉 Your order has been placed successfully!")
             st.session_state.cart.clear()
     else:
         st.info("No items in the cart to place an order.")
+
 
 elif page == "Contact":
     st.title("📞 Contact Us")
